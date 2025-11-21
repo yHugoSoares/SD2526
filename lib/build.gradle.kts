@@ -9,6 +9,10 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+    application
+}
+application {
+    mainClass.set("org.example.Main")
 }
 
 repositories {
