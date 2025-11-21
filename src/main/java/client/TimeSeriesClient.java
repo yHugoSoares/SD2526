@@ -1,11 +1,15 @@
 package client;
 
-import protocol.*;
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+
+import protocol.ProtocolCommands;
 
 /**
  * Biblioteca cliente para acesso ao servidor de séries temporais

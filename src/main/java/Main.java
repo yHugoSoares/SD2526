@@ -7,7 +7,7 @@ import server.TimeSeriesServer;
 public class Main {
     public static void main(String[] args) throws Exception {
         // Parâmetros: port, maxDays, maxSeriesInMemory
-        int port = 5000;
+        int port = 2345;
         int maxDays = 30;
         int maxSeriesInMemory = 5;
         
