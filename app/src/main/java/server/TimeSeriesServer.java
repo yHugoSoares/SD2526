@@ -19,7 +19,7 @@ public class TimeSeriesServer {
     private final int port;
     private final int maxDays;
     private final int maxSeriesInMemory;
-    private volatile int currentDay;
+    private int currentDay;
     
     // Sincronização de séries temporais
     private final ReentrantReadWriteLock seriesLock = new ReentrantReadWriteLock();
@@ -52,6 +52,11 @@ public class TimeSeriesServer {
         loadUsers();
         this.connectionExecutor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         
+        while (true) {
+            sleep(1000);
+            System.out.println("Dia atual: " + getCurrentDay() + ", Eventos na série atual: " + getCurrentSeries().getAllEvents().size());
+        }
+
         // Adicionar série do dia 0
         seriesLock.writeLock().lock();
         try {
@@ -158,6 +163,11 @@ public class TimeSeriesServer {
         seriesLock.writeLock().lock();
         try {
             currentDay++;
+            if (maxDays > 0 && currentDay > maxDays) {
+                currentDay = maxDays;
+            }
+            System.out.println("Avançando para o dia " + currentDay);
+
             notificationManager.reset();  // Reset de notificações para novo dia
             
             TimeSeries newSeries = new TimeSeries(currentDay);
@@ -175,6 +185,18 @@ public class TimeSeriesServer {
             }
         } finally {
             seriesLock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Retorna o dia corrente de forma thread-safe
+     */
+    public int getCurrentDay() {
+        seriesLock.readLock().lock();
+        try {
+            return currentDay;
+        } finally {
+            seriesLock.readLock().unlock();
         }
     }
     
@@ -238,7 +260,6 @@ public class TimeSeriesServer {
         }
     }
     
-    public int getCurrentDay() { return currentDay; }
     public int getMaxDays() { return maxDays; }
     public TimeSeries getCurrentSeries() { return currentSeries; }
     public NotificationManager getNotificationManager() { return notificationManager; }
