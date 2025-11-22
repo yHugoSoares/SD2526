@@ -10,4 +10,4 @@ PORT=7575
 
 
 # Now run the client application 
-./app/build/install/app/bin/app client --port=$PORT
+./app/build/install/app/bin/app client $PORT

@@ -1,22 +1,14 @@
-package org.example.Server;
+package org.example.server;
 
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
 
-/**
- * Programa servidor principal
- * Inicia servidor de séries temporais com parametrização
- */
-public class Server {    
-    public static void main(String[] args) {
-        // Use try-with-resources so ServerSocket is always closed and handle IOException
-        int port = 7575;
-        int maxDays = 30;
-        int maxSeriesInMemory = 5;
+public class Server {
 
-        if (args.length > 0) port = Integer.parseInt(args[0]);
-        if (args.length > 1) maxDays = Integer.parseInt(args[1]);
-        if (args.length > 2) maxSeriesInMemory = Integer.parseInt(args[2]);
+    public void startServer(String portS, String maxDaysS, String maxSeriesInMemoryS) throws IOException {
+        // Start server
+        int port = Integer.parseInt(portS);
+        int maxDays = Integer.parseInt(maxDaysS);
+        int maxSeriesInMemory = Integer.parseInt(maxSeriesInMemoryS);
 
         TimeSeriesServer server = new TimeSeriesServer(port, maxDays, maxSeriesInMemory);
 

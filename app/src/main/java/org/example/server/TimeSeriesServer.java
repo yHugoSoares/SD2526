@@ -1,6 +1,6 @@
-package server;
+package org.example.server;
 
-import domain.*;
+import org.example.domain.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;

@@ -1,5 +1,6 @@
 package org.example.server;
 
+import org.example.domain.*;
 import org.example.protocol.*;
 import java.io.*;
 import java.net.Socket;

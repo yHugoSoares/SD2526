@@ -1,4 +1,4 @@
-package protocol;
+package org.example.protocol;
 
 import java.io.*;
 import java.util.*;

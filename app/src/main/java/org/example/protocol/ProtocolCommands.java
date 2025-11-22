@@ -1,4 +1,4 @@
-package protocol;
+package org.example.protocol;
 
 /**
  * Definições de comandos do protocolo binário

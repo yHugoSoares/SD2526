@@ -10,4 +10,4 @@ PORT=7575
 
 
 # Now run the server application 
-./app/build/install/app/bin/app server --port=$PORT
+./app/build/install/app/bin/app server $PORT

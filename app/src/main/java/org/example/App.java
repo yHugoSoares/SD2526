@@ -1,53 +1,72 @@
-/*
- * This file is the main of the application. It decides whether to run in client
- * mode or server mode based on command-line arguments.
- */
 package org.example;
 
-public class App {
-    public static void main(String[] args) {
-        if (args.length > 0) {
-            String mode = args[0].toLowerCase();
-            int port = 8080; // Default port
-            int maxDays = 30; // Default maxDays
-            int maxSeriesInMemory = 100; // Default maxSeriesInMemory
+import org.example.client.ClientUI;
+import org.example.server.Server;
+import org.example.client.TimeSeriesClient;
 
-            // Parse additional arguments if provided
-            try {
-                if (args.length > 1) port = Integer.parseInt(args[1]);
-                if (args.length > 2) maxDays = Integer.parseInt(args[2]);
-                if (args.length > 3) maxSeriesInMemory = Integer.parseInt(args[3]);
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number format for port, maxDays, or maxSeriesInMemory.");
+/**
+ * Programa principal
+ * Choose to run as server or client based on args
+ */
+public class App {
+
+    private static final String DEFAULT_PORT = "7575";
+    private static final String DEFAULT_MAX_DAYS = "30";
+    private static final String DEFAULT_MAX_SERIES_IN_MEMORY = "5";
+    private static final String CLIENT_MODE = "client";
+    private static final String SERVER_MODE = "server";
+
+    public static void main(String[] args) {
+        try {
+            if (args.length == 0) {
+                System.err.println("Usage: java App <client|server> [options]");
                 return;
             }
 
-            // Decide mode
-            if ("client".equals(mode)) {
-                runClient(port, maxDays, maxSeriesInMemory);
-            } else if ("server".equals(mode)) {
-                runServer(port, maxDays, maxSeriesInMemory);
-            } else {
-                System.out.println("Invalid argument. Use 'client' or 'server'.");
+            String mode = args[0].toLowerCase();
+            switch (mode) {
+                case CLIENT_MODE -> startClient(args);
+                case SERVER_MODE -> startServer(args);
+                default -> System.err.println("Invalid mode. Use 'client' or 'server'.");
             }
-        } else {
-            System.out.println("No arguments provided. Use 'client' or 'server' followed by optional port, maxDays, and maxSeriesInMemory.");
+        } catch (Exception e) {
+            System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private static void runClient(int port, int maxDays, int maxSeriesInMemory) {
-        System.out.println("Running client...");
-        System.out.println("Port: " + port);
-        System.out.println("Max Days: " + maxDays);
-        System.out.println("Max Series In Memory: " + maxSeriesInMemory);
-        // Add client-specific logic here
+    private static void startClient(String[] args) {
+        try {
+            String portStr = args.length > 1 ? args[1] : DEFAULT_PORT;
+            int port = Integer.parseInt(portStr);
+
+            System.out.println("Starting client on port " + port + "...");
+            ClientUI clientUI = new ClientUI(new TimeSeriesClient("localhost", port));
+            clientUI.chooseOption();
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid port number for client: " + args[1]);
+        } catch (Exception e) {
+            System.err.println("Failed to start client: " + e.getMessage());
+        }
     }
 
-    private static void runServer(int port, int maxDays, int maxSeriesInMemory) {
-        System.out.println("Running server...");
-        System.out.println("Port: " + port);
-        System.out.println("Max Days: " + maxDays);
-        System.out.println("Max Series In Memory: " + maxSeriesInMemory);
-        // Add server-specific logic here
+    private static void startServer(String[] args) {
+        try {
+            String port = args.length > 1 ? args[1] : DEFAULT_PORT;
+            String maxDays = args.length > 2 ? args[2] : DEFAULT_MAX_DAYS;
+            String maxSeriesInMemory = args.length > 3 ? args[3] : DEFAULT_MAX_SERIES_IN_MEMORY;
+
+            System.out.println("Starting server...");
+            System.out.println("Port: " + port);
+            System.out.println("Max Days: " + maxDays);
+            System.out.println("Max Series in Memory: " + maxSeriesInMemory);
+
+            Server serverApp = new Server();
+            serverApp.startServer(port, maxDays, maxSeriesInMemory);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid numeric argument for server: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+        }
     }
 }
