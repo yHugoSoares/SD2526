@@ -1,7 +1,9 @@
 package org.example.client;
 
+import java.io.IOException;
 import java.util.InputMismatchException;
 import java.util.Scanner;
+import java.util.Map;
 
 public class ClientUI {
 
@@ -36,19 +38,19 @@ public class ClientUI {
                 int option = getUserInput(scanner);
 
                 switch (option) {
-                    case 1 -> handleRegister(scanner);
-                    case 2 -> handleLogin(scanner);
-                    case 3 -> handleAddEvent(scanner);
-                    case 4 -> handleNextDay();
-                    case 5 -> handleGetQuantitySales(scanner);
-                    case 6 -> handleGetVolumeSales(scanner);
-                    case 7 -> handleGetPriceStatistics(scanner);
-                    case 8 -> {
+                    case 1: handleRegister(scanner); break;
+                    case 2: handleLogin(scanner); break;
+                    case 3: handleAddEvent(scanner); break;
+                    case 4: handleNextDay(); break;
+                    case 5: handleGetQuantitySales(scanner); break;
+                    case 6: handleGetVolumeSales(scanner); break;
+                    case 7: handleGetPriceStatistics(scanner); break;
+                    case 8: {
                         System.out.println("Exiting...");
                         timeSeriesClient.disconnect();
                         return;
                     }
-                    default -> System.out.println("Invalid option. Please try again.");
+                    default: System.out.println("Invalid option. Please try again."); break;
                 }
             }
         } catch (Exception e) {
@@ -102,22 +104,76 @@ public class ClientUI {
     }
 
     private void handleAddEvent(Scanner scanner) {
-        // Implementation for adding event
+        // addEvent(String productName, long quantity, double price)
+        System.out.print("Enter product name: ");
+        String productName = scanner.next();
+        System.out.print("Enter quantity: ");
+        long quantity = scanner.nextLong();
+        System.out.print("Enter price: ");
+        double price = scanner.nextDouble();
+        try {
+            timeSeriesClient.addEvent(productName, quantity, price);
+            System.out.println("Event added successfully!");
+        } catch (Exception e) {
+            System.err.println("Error adding event: " + e.getMessage());
+        }
     }
 
     private void handleNextDay() {
         // Implementation for advancing to next day
+        try {
+            timeSeriesClient.nextDay();
+            System.out.println("Advanced to next day successfully!");
+        } catch (Exception e) {
+            System.err.println("Error advancing to next day: " + e.getMessage());
+        }
     }
 
     private void handleGetQuantitySales(Scanner scanner) {
         // Implementation for getting quantity of sales
+        // getQuantity(String product, int daysLookback)
+        System.out.print("Enter product name: ");
+        String productName = scanner.next();
+        System.out.print("Enter number of days to look back: ");
+        int daysLookback = scanner.nextInt();
+        try {
+            long quantity = timeSeriesClient.getQuantity(productName, daysLookback);
+            System.out.println("Total quantity sold in last " + daysLookback + "days:" + quantity);
+        } catch (Exception e) {
+            System.err.println("Error getting quantity of sales: " + e.getMessage());
+        }
     }
 
     private void handleGetVolumeSales(Scanner scanner) {
         // Implementation for getting volume of sales
+        // getVolume(String product, int daysLookback)
+        System.out.print("Enter product name: ");
+        String productName = scanner.next();
+        System.out.print("Enter number of days to look back: ");
+        int daysLookback = scanner.nextInt();
+        try {
+            double volume = timeSeriesClient.getVolume(productName, daysLookback);
+            System.out.println("Total volume sold in last " + daysLookback + " days: " + volume);
+        } catch (Exception e) {
+            System.err.println("Error getting volume of sales: " + e.getMessage());
+        }
     }
-
     private void handleGetPriceStatistics(Scanner scanner) {
-        // Implementation for getting price statistics
+        System.out.print("Enter product name: ");
+        String productName = scanner.next();
+        System.out.print("Enter number of days to look back: ");
+        int daysLookback = scanner.nextInt();
+        try {
+            TimeSeriesClient.PriceStats priceStats = timeSeriesClient.getPriceStats(productName, daysLookback);
+            System.out.println("Price statistics for " + productName + " in last " + daysLookback + " days:");
+            System.out.println("Average price: " + priceStats.average);
+            System.out.println("Maximum price: " + priceStats.maximum);
+        } catch (InputMismatchException e) {
+            System.err.println("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("I/O error getting price statistics: " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.err.println("Error getting price statistics: " + e.getMessage());
+        }
     }
 }

@@ -25,9 +25,9 @@ public class App {
 
             String mode = args[0].toLowerCase();
             switch (mode) {
-                case CLIENT_MODE -> startClient(args);
-                case SERVER_MODE -> startServer(args);
-                default -> System.err.println("Invalid mode. Use 'client' or 'server'.");
+                case CLIENT_MODE: startClient(args); break;
+                case SERVER_MODE: startServer(args); break;
+                default: System.err.println("Invalid mode. Use 'client' or 'server'."); break;
             }
         } catch (Exception e) {
             System.err.println("An error occurred: " + e.getMessage());
