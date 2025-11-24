@@ -23,6 +23,7 @@ public class ClientUI {
         System.out.println("6. Get volume of sales last N days");
         System.out.println("7. Get price statistics");
         System.out.println("8. Exit");
+        System.out.print("Choose an option: ");
     }
 
     public void chooseOption() {
