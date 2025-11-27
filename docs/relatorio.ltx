@@ -1,0 +1,160 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{indentfirst}
+
+% Configuração das margens
+\geometry{top=3cm, bottom=3cm, left=2.5cm, right=2.5cm}
+
+% Configuração para snippets de código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+% Informações do Título
+\title{
+    \textbf{Sistemas Distribuídos}\\
+    \large Relatório do Projeto: Servidor de Séries Temporais
+}
+\author{
+    Nome do Aluno 1 (Número) \\
+    Nome do Aluno 2 (Número) \\
+    Nome do Aluno 3 (Número)
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introdução}
+Este relatório descreve a implementação de um sistema cliente-servidor para gestão e análise de séries temporais de vendas, desenvolvido no âmbito da unidade curricular de Sistemas Distribuídos.
+
+O objetivo principal do projeto foi desenvolver um servidor capaz de receber eventos de vendas de múltiplos clientes simultaneamente, armazená-los de forma eficiente, permitir consultas estatísticas e garantir a persistência dos dados, assegurando a consistência através de mecanismos de sincronização adequados.
+
+\section{Arquitetura do Sistema}
+
+O sistema segue uma arquitetura clássica Cliente-Servidor utilizando sockets TCP para comunicação.
+
+\subsection{Servidor}
+O servidor (\texttt{TimeSeriesServer}) é o componente central. Ao iniciar, ele cria um \texttt{ServerSocket} e utiliza um \texttt{ExecutorService} (Thread Pool) para aceitar conexões. Para cada cliente conectado, uma nova tarefa \texttt{ClientHandler} é submetida à pool, permitindo o processamento concorrente de múltiplos clientes.
+
+\subsection{Cliente}
+O cliente (\texttt{TimeSeriesClient}) fornece uma API para comunicar com o servidor, abstraindo a complexidade do protocolo de rede. Existe também uma interface de texto (\texttt{ClientUI}) que permite aos utilizadores interagir com o sistema.
+
+\section{Estruturas de Dados e Domínio}
+
+\subsection{Séries Temporais (TimeSeries)}
+A classe \texttt{TimeSeries} representa os dados de um dia específico. Ela armazena uma lista de objetos \texttt{Event}.
+Para otimizar o desempenho das consultas, a classe implementa um sistema de \textit{Lazy Caching}. Os resultados de agregações (soma de quantidades, volume de vendas, estatísticas de preço) são armazenados em mapas (\texttt{quantityCache}, \texttt{volumeCache}, etc.). Estes caches são invalidados sempre que um novo evento é adicionado, garantindo a consistência dos dados.
+
+\subsection{Eventos (Event)}
+Cada evento de venda é imutável e contém:
+\begin{itemize}
+    \item Nome do produto (String)
+    \item Quantidade (long)
+    \item Preço unitário (double)
+    \item Timestamp (long)
+\end{itemize}
+
+\section{Concorrência e Sincronização}
+
+A gestão da concorrência é um dos aspetos mais críticos deste projeto. Foram utilizados diferentes mecanismos para garantir a integridade dos dados e a eficiência.
+
+\subsection{ReentrantReadWriteLock}
+Na classe \texttt{TimeSeries}, utilizou-se \texttt{ReentrantReadWriteLock}. Esta escolha justifica-se pelo padrão de acesso aos dados:
+\begin{itemize}
+    \item \textbf{Leitura (Read Lock):} Múltiplas threads podem calcular estatísticas simultaneamente (ex: \texttt{calculateQuantity}), desde que não haja escritas a ocorrer.
+    \item \textbf{Escrita (Write Lock):} Apenas uma thread pode adicionar um evento (\texttt{addEvent}) de cada vez, bloqueando leituras e outras escritas.
+\end{itemize}
+
+O servidor principal também usa este lock para proteger o mapa de séries temporais (\texttt{timeSeriesMap}) e o mapa de utilizadores.
+
+\subsection{NotificationManager e Condition Variables}
+Para implementar as funcionalidades de espera por eventos (vendas simultâneas ou consecutivas), foi criada a classe \texttt{NotificationManager}.
+Utiliza-se um \texttt{ReentrantLock} e uma \texttt{Condition} (\texttt{eventOccurred}).
+
+\begin{lstlisting}[language=Java, caption=Exemplo de uso de Condition no NotificationManager]
+public void recordSale(String productName) {
+    lock.lock();
+    try {
+        productsWithSales.add(productName);
+        // ... logica de consecutivos ...
+        eventOccurred.signalAll(); // Acorda threads à espera
+    } finally {
+        lock.unlock();
+    }
+}
+\end{lstlisting}
+
+As threads que aguardam por vendas (comando \texttt{WAIT\_SIMULTANEOUS}) ficam bloqueadas no método \texttt{await()} da variável de condição, sendo acordadas apenas quando ocorre uma nova venda, evitando \textit{busy-waiting}.
+
+\section{Persistência e Gestão de Memória}
+
+O sistema implementa uma lógica de "Janela Deslizante" para gestão de memória.
+
+\subsection{Rotação de Dias}
+O servidor mantém em memória apenas um número fixo de dias (\texttt{maxSeriesInMemory}). Quando o comando \texttt{NEXT\_DAY} é invocado:
+\begin{enumerate}
+    \item O dia corrente é incrementado.
+    \item Uma nova \texttt{TimeSeries} é criada.
+    \item Se o limite de memória for excedido, a série mais antiga é removida da memória e persistida em disco.
+\end{enumerate}
+
+\subsection{Serialização}
+Os dados são guardados na pasta \texttt{data/}.
+\begin{itemize}
+    \item \textbf{Utilizadores:} Ficheiro de texto \texttt{users.dat} (formato \texttt{user:hash}).
+    \item \textbf{Séries:} Ficheiros binários \texttt{series\_<dia>.dat} usando \texttt{ObjectOutputStream}.
+\end{itemize}
+
+\section{Protocolo de Comunicação}
+
+Foi desenvolvido um protocolo binário personalizado (\texttt{BinaryProtocol}) para minimizar o tráfego de rede.
+
+\subsection{Estrutura das Mensagens}
+Todas as mensagens iniciam com um inteiro representando o ID do comando (definido em \texttt{ProtocolCommands}), seguido pelos argumentos específicos.
+
+\subsection{Comandos Principais}
+\begin{itemize}
+    \item \textbf{REGISTER (1) / LOGIN (2):} Autenticação de utilizadores.
+    \item \textbf{ADD\_EVENT (10):} Envio de dados de venda.
+    \item \textbf{NEXT\_DAY (11):} Avanço do tempo no servidor.
+    \item \textbf{GET\_QUANTITY (20) / GET\_VOLUME (21):} Consultas agregadas.
+    \item \textbf{WAIT\_SIMULTANEOUS (30):} Bloqueia até dois produtos serem vendidos no mesmo dia.
+\end{itemize}
+
+\section{Conclusão}
+O projeto permitiu aplicar na prática os conceitos de programação concorrente e distribuída. A utilização de \texttt{ReadWriteLocks} permitiu otimizar o acesso aos dados, favorecendo leituras paralelas, enquanto as variáveis de condição permitiram implementar notificações eficientes entre threads. A arquitetura modular facilita a manutenção e a extensão futura do sistema.
+
+\end{document}
