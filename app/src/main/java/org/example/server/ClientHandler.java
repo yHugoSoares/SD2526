@@ -254,7 +254,7 @@ public class ClientHandler implements Runnable {
         );
 
         double sumAvg = 0;
-        double maxPrice = Double.MIN_VALUE;
+        double maxPrice = 0;
         int count = 0;
 
         for (int i = 0; i <= daysLookback; i++) {
@@ -268,9 +268,13 @@ public class ClientHandler implements Runnable {
                     daysLookback,
                     server.getCurrentDay()
                 );
-                sumAvg += stats.average;
-                maxPrice = Math.max(maxPrice, stats.maximum);
-                count++;
+                
+                // Only include in statistics if there were sales (max > 0)
+                if (stats.maximum > 0) {
+                    sumAvg += stats.average;
+                    maxPrice = Math.max(maxPrice, stats.maximum);
+                    count++;
+                }
             }
         }
 

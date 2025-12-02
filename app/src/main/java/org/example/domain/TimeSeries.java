@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class TimeSeries {
     private final List<Event> events;
+    private final Set<String> productNames = new HashSet<>();
     private final int day;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     
@@ -30,12 +31,23 @@ public class TimeSeries {
         lock.writeLock().lock();
         try {
             events.add(event);
+            productNames.add(event.getProductName());
             // Invalidar caches relevantes
             quantityCache.remove(event.getProductName());
             volumeCache.remove(event.getProductName());
             priceStatsCache.remove(event.getProductName());
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    // New method to check existence efficiently (O(1))
+    public boolean hasProduct(String product) {
+        lock.readLock().lock();
+        try {
+            return productNames.contains(product);
+        } finally {
+            lock.readLock().unlock();
         }
     }
     
@@ -62,6 +74,7 @@ public class TimeSeries {
      * Calcula quantidade de vendas com caching lazy
      */
     public long calculateQuantity(String product, int daysLookback, int currentDay) {
+        if (!hasProduct(product)) return 0;
         lock.readLock().lock();
         try {
             // Verificar cache
@@ -94,6 +107,7 @@ public class TimeSeries {
      * Calcula volume de vendas com caching lazy
      */
     public double calculateVolume(String product, int daysLookback, int currentDay) {
+        if (!hasProduct(product)) return 0;
         lock.readLock().lock();
         try {
             AggregationResult.VolumeResult cached = volumeCache.get(product);
@@ -124,6 +138,7 @@ public class TimeSeries {
      * Calcula estatísticas de preço (média e máximo)
      */
     public AggregationResult.PriceStats calculatePriceStats(String product, int daysLookback, int currentDay) {
+        if (!hasProduct(product)) return new AggregationResult.PriceStats(0, 0, currentDay);
         lock.readLock().lock();
         try {
             AggregationResult.PriceStats cached = priceStatsCache.get(product);
@@ -137,7 +152,7 @@ public class TimeSeries {
         lock.writeLock().lock();
         try {
             double sum = 0;
-            double max = Double.MIN_VALUE;
+            double max = 0;
             long count = 0;
             
             for (Event event : events) {

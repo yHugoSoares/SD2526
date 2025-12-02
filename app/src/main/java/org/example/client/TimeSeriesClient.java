@@ -160,6 +160,7 @@ public class TimeSeriesClient {
         try {
             dos.writeInt(ProtocolCommands.GET_PRICE_STATS);
             dos.writeUTF(product);
+            
             dos.writeInt(daysLookback);
             dos.flush();
             
